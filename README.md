@@ -64,8 +64,6 @@ NeoPRos/
 │   │   ├── io.h          # операции ввода-вывода (inb/outb)
 │   │   └── multiboot.h   # структуры Multiboot info
 │   └── linker.ld         # скрипт линковки (ядро по адресу 0x00100000)
-├── scripts/
-│   └── run.sh            # запуск в QEMU
 ├── LICENSE.TXT           # GPL-3.0
 └── README.md
 ```
@@ -101,11 +99,12 @@ dcr build --clean         # полная пересборка
 ## Запуск в QEMU
 
 ```bash
-scripts/run.sh            # debug
-scripts/run.sh --release  # релизная сборка
+dcr run                   # debug
+dcr run --release         # релизная сборка
 ```
 
-Или вручную:
+Запуск описан в секции `[run]` файла `dcr.toml` (подстановка `{profile}`
+происходит автоматически). Или вручную:
 
 ```bash
 qemu-system-i386 -kernel target/i386-none-elf/debug/neopros.bin -serial stdio

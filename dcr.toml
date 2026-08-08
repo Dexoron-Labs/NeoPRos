@@ -20,8 +20,7 @@ roots = ["src"]
 cflags = ["--target=i386-none-elf", "-ffreestanding", "-fno-builtin", "-fno-stack-protector", "-fno-pic", "-fno-pie", "-mno-sse", "-mno-mmx", "-mno-80387", "-Wall", "-Wextra"]
 ldflags = ["-T", "src/linker.ld", "-Wl,--build-id=none"]
 
-[build.asm]
-compiler = "nasm"
-flags = ["-felf32"]
+[run]
+cmd = "qemu-system-i386 -kernel target/i386-none-elf/{profile}/neopros.bin -serial stdio"
 
 [dependencies]
