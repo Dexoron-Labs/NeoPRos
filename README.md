@@ -13,7 +13,7 @@
 
 **NeoPRos** — учебная операционная система для x86, работающая в 32-битном
 protected mode. Пишется на чистом C11 с минимальным количеством ассемблера
-(только загрузка, точка входа и обработчики прерываний).
+(только загрузка и точка входа).
 
 </div>
 
@@ -32,7 +32,7 @@ protected mode.
 | | x16-PRos (старый) | NeoPRos (новый) |
 |---|---|---|
 | Режим | 16-битный real mode | 32-битный protected mode |
-| Язык | NASM (100%) | C11 + минимум NASM (boot/entry) |
+| Язык | NASM (100%) | C11 + минимум ассемблера (boot/entry) |
 | Загрузка | собственный bootloader | Multiboot-совместимое ядро |
 | Компилятор | NASM | clang (i386-none-elf) |
 | Сборка | bash-скрипты | **DCR** (dcr.toml) |
@@ -40,11 +40,12 @@ protected mode.
 
 ## Текущие возможности
 
-- Multiboot-совместимая загрузка (загрузчик: QEMU, GRUB и др.)
+- Multiboot-совместимая загрузка (загрузчики: QEMU, GRUB и др.)
 - Точка входа ядра в 32-битном protected mode
-- Минимальная GDT с плоской моделью памяти (4 GiB)
-- Вывод в VGA text mode (80x25, 0xB8000)
-- Вывод в COM1 (serial) для отладки
+- Минимальная GDT с плоской моделью памяти (0..4 ГБ)
+- Вывод в VGA text mode (80x25, 0xB8000) с цветом и прокруткой
+- Вывод в COM1 (serial, 38400 бод) — дублирование консоли для отладки
+- Диагностика Multiboot-информации: память, имя загрузчика
 - Чёткое разделение: boot на ассемблере, ядро на C
 
 ## Структура проекта
@@ -52,15 +53,15 @@ protected mode.
 ```
 NeoPRos/
 ├── dcr.toml              # конфигурация сборки DCR
-├── linker.ld-подобный:    # смотри src/linker.ld
 ├── src/
 │   ├── boot/
-│   │   └── boot.asm      # multiboot-заголовок + точка входа (_start)
+│   │   └── boot.S        # multiboot-заголовок + точка входа (_start)
 │   ├── kernel/
 │   │   ├── kmain.c       # ранняя точка входа ядра на C
+│   │   ├── gdt.c/.h      # минимальная GDT (плоские сегменты)
 │   │   ├── vga.c/.h      # вывод в VGA text mode
 │   │   ├── serial.c/.h   # вывод в COM1
-│   │   ├── gdt.c/.h      # минимальная GDT
+│   │   ├── io.h          # операции ввода-вывода (inb/outb)
 │   │   └── multiboot.h   # структуры Multiboot info
 │   └── linker.ld         # скрипт линковки (ядро по адресу 0x00100000)
 ├── scripts/
@@ -69,30 +70,60 @@ NeoPRos/
 └── README.md
 ```
 
+## Как это работает
+
+1. **Загрузка** — QEMU (или GRUB) находит Multiboot-заголовок в первых
+   8 КиБ образа, загружает ядро по адресу 1 МиБ и входит в 32-битный
+   protected mode. В EAX передаётся магическое число `0x2BADB002`,
+   в EBX — адрес структуры `multiboot_info`.
+2. **boot.S** — сохраняет аргументы загрузчика, инициализирует COM1,
+   устанавливает собственный стек и вызывает `kmain` на C.
+3. **kmain** — инициализирует GDT (собственные плоские сегменты кода
+   и данных 0..4 ГБ), COM1, VGA, выводит приветствие и диагностику.
+
+Ассемблер собран синтаксисом GAS (Intel-нотация): DCR обрабатывает
+`.S`-файлы через clang, а `.c` — через бэкенд C. Оба языка описаны
+в `dcr.toml` (`language = "c,asm"`).
+
 ## Сборка
 
-Требуется: **DCR 0.8.x**, **clang**, **NASM**, GNU ld или lld.
+Требуется: **DCR 0.8.x**, **clang**, GNU ld/lld (binutils).
 
 ```bash
 dcr build                 # отладочная сборка
 dcr build --release       # релизная сборка
+dcr build --clean         # полная пересборка
 ```
 
-Артефакт: `target/i386-none-elf/debug/neopros` — Multiboot-совместимый ELF.
+Артефакт: `target/i386-none-elf/debug/neopros.bin` — Multiboot-совместимый
+плоский образ ядра.
 
 ## Запуск в QEMU
 
 ```bash
-scripts/run.sh            # qemu-system-i386 -kernel <образ>
+scripts/run.sh            # debug
+scripts/run.sh --release  # релизная сборка
 ```
 
 Или вручную:
 
 ```bash
-qemu-system-i386 -kernel target/i386-none-elf/debug/neopros -serial stdio
+qemu-system-i386 -kernel target/i386-none-elf/debug/neopros.bin -serial stdio
 ```
 
-На экране появится приветствие NeoPRos, вывод VGA продублируется в COM1.
+Примерный вывод на экране и в COM1:
+
+```
+NeoPRos 0.1.0 — 32-bit i386 OS, written by AI
+================================================
+
+Boot: multiboot (OK)
+MBI flags: 0x0000024f
+Low memory:  639 KiB
+High memory: 129920 KiB
+Bootloader: qemu
+Kernel initialized. Halting.
+```
 
 ## Планы
 
