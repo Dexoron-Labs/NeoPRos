@@ -8,16 +8,17 @@ author = "AI"
 license = "GPL-3.0-or-later"
 
 [build]
-language = "c"
+language = "c,asm"
 standard = "c11"
 compiler = "clang"
-kind = "elf"
+kind = "flat-bin"
+extension = "bin"
 target = "i386-none-elf"
 freestanding = true
 filename = "neopros"
 roots = ["src"]
 cflags = ["--target=i386-none-elf", "-ffreestanding", "-fno-builtin", "-fno-stack-protector", "-fno-pic", "-fno-pie", "-mno-sse", "-mno-mmx", "-mno-80387", "-Wall", "-Wextra"]
-ldflags = ["-T", "src/linker.ld"]
+ldflags = ["-T", "src/linker.ld", "-Wl,--build-id=none"]
 
 [build.asm]
 compiler = "nasm"

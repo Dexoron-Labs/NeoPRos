@@ -1,0 +1,9 @@
+{
+  "evenBetterToml.schema.associations": {
+    "^(.*[/\\\\])?dcr\\.toml$": "file:///home/dexoron/.vscode/extensions/dexoron-labs.dcr-0.1.4/schemas/dcr.toml.schema.json"
+  },
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}/.dcr",
+    "--header-insertion=never"
+  ]
+}

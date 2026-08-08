@@ -1,0 +1,82 @@
+/* ============================================================
+ *  NeoPRos — загрузочный код ядра (GAS, Intel-синтаксис)
+ *  Формат: Multiboot (flat binary), 32-битный protected mode.
+ *  Загрузчик (QEMU, GRUB) загружает образ по адресам,
+ *  указанным в Multiboot-заголовке, и передаёт управление
+ *  на точку входа _start.
+ *  Примечание: DCR собирает ассемблер через clang (бэкенд
+ *  unix_cc), поэтому используется синтаксис GAS.
+ * ============================================================ */
+
+.intel_syntax noprefix
+
+/* --- Константы Multiboot-заголовка --------------------------- */
+.equ MB_MAGIC,    0x1BADB002
+/* бит 0: модули по 4 КиБ, бит 1: карта памяти,
+ * бит 16 (HAS_ADDR): адреса загрузки заданы в заголовке */
+.equ MB_FLAGS,    0x00010003
+
+/* --- Точка входа (начало образа) ------------------------------ */
+.section .text
+.global _start
+.extern kmain
+
+_start:
+    cli                         /* запрещаем прерывания до настройки IDT */
+
+    /* --- COM1: базовая инициализация (диагностика) ---------- */
+    mov dx, 0x3FB               /* регистр управления линией (LCR) */
+    mov al, 0x80                /* DLAB = 1 — настройка делителя */
+    out dx, al
+    mov dx, 0x3F8
+    mov al, 0x03                /* делитель 3 → 38400 бод */
+    out dx, al
+    mov dx, 0x3F9
+    xor al, al
+    out dx, al
+    mov dx, 0x3FB
+    mov al, 0x03                /* 8 бит, без чётности, 1 стоп-бит */
+    out dx, al
+
+    mov dx, 0x3F8
+    mov al, 'N'
+    out dx, al
+
+    /* --- устанавливаем собственный стек ядра ----------------- */
+    mov esp, offset stack_top
+
+    /* --- передаём аргументы и входим в ядро на C ------------- */
+    push ebx                    /* адрес структуры multiboot_info */
+    push eax                    /* магическое число 0x2BADB002 */
+    call kmain
+
+1:                              /* сюда возвращаемся, если kmain завершится */
+    cli
+    hlt
+    jmp 1b
+
+/* --- Multiboot-заголовок ------------------------------------- */
+/* Загрузчик сканирует первые 8 КиБ образа в поисках заголовка.
+ * Поля адресов заданы через символы линкера, поэтому они всегда
+ * соответствуют реальной раскладке секций. */
+.section .multiboot, "a", @progbits
+.align 4
+.extern _mb_load_end, _mb_bss_end
+mb_header:
+    .long MB_MAGIC                          /* magic */
+    .long MB_FLAGS                          /* flags */
+    .long -(MB_MAGIC + MB_FLAGS)            /* checksum */
+    .long mb_header                         /* header_addr */
+    .long _start                            /* load_addr */
+    .long _mb_load_end                      /* load_end_addr */
+    .long _mb_bss_end                       /* bss_end_addr */
+    .long _start                            /* entry_addr */
+
+/* --- стек ядра ------------------------------------------------ */
+/* Стек — обычная (PROGBITS) секция: входит в образ нулями и
+ * гарантированно загружается Multiboot-загрузчиком. */
+.section .stack, "aw", @progbits
+.align 16
+stack_bottom:
+    .skip 16384
+stack_top:
