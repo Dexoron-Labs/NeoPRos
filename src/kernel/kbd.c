@@ -45,6 +45,40 @@ static volatile uint8_t break_pending;
 #define SCAN_PREFIX_EXT 0xE0   /* префикс расширенных клавиш */
 #define SCAN_PREFIX_BRK 0xF0   /* префикс релиза (set 2 / QEMU) */
 
+/*
+ * Расширенные клавиши (с префиксом 0xE0) переводятся в стандартные
+ * ANSI-последовательности терминала. Это позволяет всем потребителям
+ * ввода (readline, будущий shell) работать с единым потоком символов,
+ * как с обычным VT-терминалом.
+ */
+static const char *kbd_ext_sequence(uint8_t code)
+{
+    switch (code) {
+    case 0x48: return "\x1b[A";    /* стрелка вверх */
+    case 0x50: return "\x1b[B";    /* стрелка вниз  */
+    case 0x4D: return "\x1b[C";    /* стрелка вправо */
+    case 0x4B: return "\x1b[D";    /* стрелка влево  */
+    case 0x47: return "\x1b[H";    /* Home */
+    case 0x4F: return "\x1b[F";    /* End  */
+    case 0x53: return "\x1b[3~";   /* Delete  */
+    case 0x52: return "\x1b[2~";   /* Insert  */
+    case 0x49: return "\x1b[5~";   /* Page Up   */
+    case 0x51: return "\x1b[6~";   /* Page Down */
+    default:   return NULL;        /* прочие (служебные) игнорируем */
+    }
+}
+
+/* Один символ в кольцевой буфер; при переполнении теряется. */
+static void kbd_push_char(char c)
+{
+    uint32_t next = (buf_head + 1) % KBD_BUFFER_SIZE;
+    if (next == buf_tail) {
+        return;
+    }
+    buffer[buf_head] = c;
+    buf_head = next;
+}
+
 /* Ожидание готовности контроллера 8042 к приёму команды */
 static void kbd_wait_input(void)
 {
@@ -64,8 +98,17 @@ void irq1_keyboard(void)
         extended_pending = 1;
         return;
     }
-    if (extended_pending) {             /* расширенные клавиши пока игнорируем */
+    if (extended_pending) {             /* расширенная клавиша → ANSI */
         extended_pending = 0;
+        if (scancode & 0x80) {
+            return;                     /* релиз расширенной клавиши */
+        }
+        const char *seq = kbd_ext_sequence(scancode);
+        if (seq != NULL) {
+            while (*seq) {
+                kbd_push_char(*seq++);
+            }
+        }
         return;
     }
     if (scancode == SCAN_PREFIX_BRK) {  /* префикс релиза (стиль set 2) */
@@ -107,13 +150,7 @@ void irq1_keyboard(void)
     if (c == 0) {
         return;
     }
-
-    uint32_t next = (buf_head + 1) % KBD_BUFFER_SIZE;
-    if (next == buf_tail) {
-        return;                     /* буфер переполнен: теряем символ */
-    }
-    buffer[buf_head] = c;
-    buf_head = next;
+    kbd_push_char(c);
 }
 
 void kbd_init(void)

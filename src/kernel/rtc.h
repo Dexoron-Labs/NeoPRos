@@ -13,6 +13,9 @@ struct rtc_time {
     uint16_t year;
 };
 
+/* Принудительная установка BCD + 24h формата. */
+void rtc_init(void);
+
 /* Чтение текущих даты и времени из CMOS RTC. */
 void rtc_get_time(struct rtc_time *t);
 

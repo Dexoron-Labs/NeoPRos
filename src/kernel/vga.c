@@ -52,11 +52,17 @@ void vga_init(void)
     vga_row = 0;
     vga_col = 0;
     vga_color = (uint8_t)(VGA_COLOR_BLACK << 4 | VGA_COLOR_WHITE);
+    vga_clear();
+}
 
+void vga_clear(void)
+{
     volatile uint16_t *mem = VGA_MEMORY;
     for (uint16_t i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
         mem[i] = (uint16_t)(vga_color << 8 | ' ');
     }
+    vga_row = 0;
+    vga_col = 0;
     vga_update_cursor();
 }
 
@@ -72,6 +78,12 @@ void vga_putc(char c)
         vga_row++;
     } else if (c == '\r') {
         vga_col = 0;
+    } else if (c == '\b') {
+        /* backspace: на шаг назад и затирание символа */
+        if (vga_col > 0) {
+            vga_col--;
+        }
+        VGA_MEMORY[vga_index()] = (uint16_t)(vga_color << 8 | ' ');
     } else if (c == '\t') {
         do {
             vga_putc(' ');

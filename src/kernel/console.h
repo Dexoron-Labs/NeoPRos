@@ -14,6 +14,13 @@ void console_init(void);
 /* Установка цвета (одинаковая для VGA и ANSI-терминала). */
 void console_set_color(uint8_t fg, uint8_t bg);
 
+/* Очистка экрана (VGA) и терминала (COM1). */
+void console_clear(void);
+
+/* Форматированный вывод в обе консоли.
+ * Поддерживаются: %s %c %d %u %x %% — для остального вывод как есть. */
+void kprintf(const char *fmt, ...);
+
 /* Вывод одного символа в обе консоли. */
 void console_putc(char c);
 

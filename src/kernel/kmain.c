@@ -5,6 +5,10 @@
 #include "kbd.h"
 #include "rtc.h"
 #include "console.h"
+#include "pmm.h"
+#include "kheap.h"
+#include "shell.h"
+#include "commands.h"
 
 /* Флаги структуры multiboot_info (спецификация Multiboot) */
 #define MBI_FLAG_MEMORY      (1u << 0)   /* mem_lower/mem_upper валидны */
@@ -83,44 +87,32 @@ void kmain(uint32_t magic, uint32_t info_addr)
     __asm__ volatile("sti");
 
     /* --- проверка RTC (часы реального времени) ---------------- */
+    rtc_init();                      /* RTC: BCD + 24h */
+
     {
         struct rtc_time t;
         rtc_get_time(&t);
-        console_puts("RTC: ");
-        console_print_dec32(t.year);
-        console_putc('-');
-        console_print_dec32(t.month);
-        console_putc('-');
-        console_print_dec32(t.day);
-        console_putc(' ');
-        console_print_dec32(t.hour);
-        console_putc(':');
-        console_print_dec32(t.minute);
-        console_putc(':');
-        console_print_dec32(t.second);
-        console_puts("\n");
+        kprintf("RTC: %04u-%02u-%02u %02u:%02u:%02u\n",
+                t.year, t.month, t.day, t.hour, t.minute, t.second);
     }
 
-    /* --- тестовый цикл: тики таймера и клавиатура ------------ */
-    uint32_t last_print = 0;
+    /* --- менеджеры памяти ------------------------------------- */
+    pmm_init(info);                  /* физическая память (bitmap) */
+    kheap_init(256u * 1024u);        /* куча ядра: 256 КиБ стартово */
 
-    for (;;) {
-        if (pit_ticks() - last_print >= PIT_HZ) {
-            last_print = pit_ticks();
-            console_set_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK);
-            console_puts("tick ");
-            console_print_dec32(pit_ticks());
-            console_puts("\n");
-            console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+    console_puts("Memory: ");
+    console_print_dec32(pmm_total_page_count() * PMM_PAGE_SIZE / 1024);
+    console_puts(" KiB total, ");
+    console_print_dec32(pmm_free_page_count() * PMM_PAGE_SIZE / 1024);
+    console_puts(" KiB free\n");
+
+    /* --- командная оболочка prosh ----------------------------- */
+    commands_init();
+
+    if (shell_main() == SHELL_EXIT) {
+        console_puts("\nSystem halted.\n");
+        for (;;) {
+            __asm__ volatile("cli; hlt");
         }
-
-        int c = kbd_getc();
-        if (c != -1) {
-            console_puts("key: '");
-            console_putc((char)c);
-            console_puts("'\n");
-        }
-
-        __asm__ volatile("hlt");
     }
 }
