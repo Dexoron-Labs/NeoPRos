@@ -22,6 +22,11 @@ void console_set_color(uint8_t fg, uint8_t bg)
     com1_set_color(fg, bg);
 }
 
+void console_set_cursor_col(uint8_t col)
+{
+    vga_set_cursor_col(col);
+}
+
 void console_putc(char c)
 {
     vga_putc(c);

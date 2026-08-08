@@ -57,6 +57,9 @@ static void rl_redraw(void)
         console_putc(line_buf[i]);
         printed_len++;
     }
+
+    /* аппаратный курсор — в позицию редактирования, а не в конец строки */
+    console_set_cursor_col((uint8_t)(prompt_len + line_pos));
 }
 
 /* Печать prompt — вызывается в начале чтения */

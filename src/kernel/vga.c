@@ -71,6 +71,15 @@ void vga_set_color(uint8_t fg, uint8_t bg)
     vga_color = (uint8_t)(bg << 4 | fg);
 }
 
+void vga_set_cursor_col(uint8_t col)
+{
+    if (col >= VGA_WIDTH) {
+        col = (uint8_t)(VGA_WIDTH - 1);
+    }
+    vga_col = col;
+    vga_update_cursor();
+}
+
 void vga_putc(char c)
 {
     if (c == '\n') {

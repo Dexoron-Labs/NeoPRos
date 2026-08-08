@@ -21,6 +21,10 @@ void console_clear(void);
  * Поддерживаются: %s %c %d %u %x %% — для остального вывод как есть. */
 void kprintf(const char *fmt, ...);
 
+/* Перемещение аппаратного курсора в колонку на текущей строке
+ * (для readline; COM1 курсора не имеет). */
+void console_set_cursor_col(uint8_t col);
+
 /* Вывод одного символа в обе консоли. */
 void console_putc(char c);
 
