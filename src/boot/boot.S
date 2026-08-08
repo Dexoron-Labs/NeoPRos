@@ -50,13 +50,13 @@ _start:
  * соответствуют реальной раскладке секций. */
 .section .multiboot, "a", @progbits
 .align 4
-.extern _mb_load_end, _mb_bss_end
+.extern _mb_load_start, _mb_load_end, _mb_bss_end
 mb_header:
     .long MB_MAGIC                          /* magic */
     .long MB_FLAGS                          /* flags */
     .long -(MB_MAGIC + MB_FLAGS)            /* checksum */
     .long mb_header                         /* header_addr */
-    .long _start                            /* load_addr */
+    .long _mb_load_start                    /* load_addr: начало образа */
     .long _mb_load_end                      /* load_end_addr */
     .long _mb_bss_end                       /* bss_end_addr */
     .long _start                            /* entry_addr */

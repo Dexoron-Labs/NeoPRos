@@ -1,7 +1,10 @@
 #include "multiboot.h"
 #include "gdt.h"
-#include "vga.h"
-#include "serial.h"
+#include "idt.h"
+#include "pit.h"
+#include "kbd.h"
+#include "rtc.h"
+#include "console.h"
 
 /* Флаги структуры multiboot_info (спецификация Multiboot) */
 #define MBI_FLAG_MEMORY      (1u << 0)   /* mem_lower/mem_upper валидны */
@@ -15,6 +18,8 @@
  * Вызывается из boot.asm после установки стека.
  *   magic     — магическое число Multiboot (0x2BADB002),
  *   info_addr — физический адрес структуры multiboot_info.
+ *
+ * Все строки — только ASCII: выводятся в VGA и COM1 одинаково.
  */
 void kmain(uint32_t magic, uint32_t info_addr)
 {
@@ -22,69 +27,100 @@ void kmain(uint32_t magic, uint32_t info_addr)
         (const struct multiboot_info *)info_addr;
 
     /* --- инициализация подсистем ядра ---------------------- */
-    gdt_init();      /* собственная GDT + перезагрузка сегментов */
-    com1_init();     /* COM1 (38400 бод) — дублирование вывода */
-    vga_init();      /* VGA text mode 80x25 */
+    gdt_init();        /* собственная GDT + перезагрузка сегментов */
+    console_init();    /* VGA text mode + COM1 (единая консоль) */
 
     /* --- заставка ------------------------------------------- */
-    vga_set_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK);
-    vga_puts("NeoPRos 0.1.0 — 32-bit i386 OS, written by AI\n");
-    vga_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
-    vga_puts("================================================\n\n");
-
-    com1_puts("NeoPRos 0.1.0 — 32-bit i386 OS, written by AI\n");
+    console_set_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK);
+    console_puts("NeoPRos 0.1.0 - 32-bit i386 OS, written by AI\n");
+    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+    console_puts("================================================\n\n");
 
     /* --- проверка магического числа загрузчика -------------- */
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
-        vga_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
-        vga_puts("Boot: multiboot (FAILED: bad magic)\n");
-        com1_puts("Boot: multiboot (FAILED: bad magic)\n");
+        console_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
+        console_puts("Boot: multiboot (FAILED: bad magic)\n");
         for (;;) {
-            __asm__ volatile("hlt");
+            __asm__ volatile("cli; hlt");
         }
     }
 
-    vga_puts("Boot: multiboot (OK)\n");
-    com1_puts("Boot: multiboot (OK)\n");
+    console_puts("Boot: multiboot (OK)\n");
 
-    vga_puts("MBI flags: ");
-    vga_print_hex32(info->flags);
-    vga_puts("\n");
-    com1_puts("MBI flags: ");
-    com1_print_hex32(info->flags);
-    com1_puts("\n");
+    console_puts("MBI flags: ");
+    console_print_hex32(info->flags);
+    console_puts("\n");
 
     /* --- сведения о памяти из multiboot_info ----------------- */
     if (info->flags & MBI_FLAG_MEMORY) {
-        vga_puts("Low memory:  ");
-        vga_print_dec32(info->mem_lower);
-        vga_puts(" KiB\n");
-        vga_puts("High memory: ");
-        vga_print_dec32(info->mem_upper);
-        vga_puts(" KiB\n");
-
-        com1_puts("Low memory:  ");
-        com1_print_hex32(info->mem_lower);
-        com1_puts("\nHigh memory: ");
-        com1_print_hex32(info->mem_upper);
-        com1_puts("\n");
+        console_puts("Low memory:  ");
+        console_print_dec32(info->mem_lower);
+        console_puts(" KiB\n");
+        console_puts("High memory: ");
+        console_print_dec32(info->mem_upper);
+        console_puts(" KiB\n");
     }
 
     /* --- имя загрузчика -------------------------------------- */
     if (info->flags & MBI_FLAG_BOOTLOADER) {
         const char *name = (const char *)info->boot_loader_name;
-        vga_puts("Bootloader: ");
-        vga_puts(name);
-        vga_puts("\n");
-        com1_puts("Bootloader: ");
-        com1_puts(name);
-        com1_puts("\n");
+        console_puts("Bootloader: ");
+        console_puts(name);
+        console_puts("\n");
     }
 
-    vga_puts("Kernel initialized. Halting.\n");
-    com1_puts("Kernel initialized. Halting.\n");
+    /* --- прерывания и аппаратные драйверы -------------------- */
+    idt_init();        /* IDT на основе asm-stub'ов */
+    pic_remap();       /* PIC: remap на 0x20/0x28 */
+    pit_init();        /* PIT: 100 Гц */
+    kbd_init();        /* PS/2 клавиатура */
+
+    pic_enable_irq(0); /* таймер */
+    pic_enable_irq(1); /* клавиатура */
+
+    console_puts("Interrupts: OK\n");
+
+    __asm__ volatile("sti");
+
+    /* --- проверка RTC (часы реального времени) ---------------- */
+    {
+        struct rtc_time t;
+        rtc_get_time(&t);
+        console_puts("RTC: ");
+        console_print_dec32(t.year);
+        console_putc('-');
+        console_print_dec32(t.month);
+        console_putc('-');
+        console_print_dec32(t.day);
+        console_putc(' ');
+        console_print_dec32(t.hour);
+        console_putc(':');
+        console_print_dec32(t.minute);
+        console_putc(':');
+        console_print_dec32(t.second);
+        console_puts("\n");
+    }
+
+    /* --- тестовый цикл: тики таймера и клавиатура ------------ */
+    uint32_t last_print = 0;
 
     for (;;) {
+        if (pit_ticks() - last_print >= PIT_HZ) {
+            last_print = pit_ticks();
+            console_set_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK);
+            console_puts("tick ");
+            console_print_dec32(pit_ticks());
+            console_puts("\n");
+            console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+        }
+
+        int c = kbd_getc();
+        if (c != -1) {
+            console_puts("key: '");
+            console_putc((char)c);
+            console_puts("'\n");
+        }
+
         __asm__ volatile("hlt");
     }
 }
