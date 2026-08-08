@@ -82,6 +82,7 @@ void kmain(uint32_t magic, uint32_t info_addr)
     }
 
     vga_puts("Kernel initialized. Halting.\n");
+    com1_puts("Kernel initialized. Halting.\n");
 
     for (;;) {
         __asm__ volatile("hlt");

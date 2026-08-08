@@ -31,24 +31,6 @@ _start:
     mov edi, eax
     mov esi, ebx
 
-    /* --- COM1: базовая инициализация (диагностика) ---------- */
-    mov dx, 0x3FB               /* регистр управления линией (LCR) */
-    mov al, 0x80                /* DLAB = 1 — настройка делителя */
-    out dx, al
-    mov dx, 0x3F8
-    mov al, 0x03                /* делитель 3 → 38400 бод */
-    out dx, al
-    mov dx, 0x3F9
-    xor al, al
-    out dx, al
-    mov dx, 0x3FB
-    mov al, 0x03                /* 8 бит, без чётности, 1 стоп-бит */
-    out dx, al
-
-    mov dx, 0x3F8
-    mov al, 'N'
-    out dx, al
-
     /* --- устанавливаем собственный стек ядра ----------------- */
     mov esp, offset stack_top
 
