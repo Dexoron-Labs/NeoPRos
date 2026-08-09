@@ -3,11 +3,18 @@
 
 #include "kernel/multiboot.h"
 
-/* Цвета VGA (верхняя половина байта атрибута — фон, нижняя — текст) */
-#define VGA_COLOR_BLACK   0x0
-#define VGA_COLOR_GREEN   0x2
-#define VGA_COLOR_CYAN    0x3
-#define VGA_COLOR_WHITE   0x7
+/*
+ * Цвета VGA (верхняя половина байта атрибута — фон, нижняя — текст).
+ * Значения — как у x16-PRos (kernel.asm COLOR_*): яркие цвета,
+ * белый 0x0F; реальные оттенки задаёт палитра DEFAULT.THM (vga.c).
+ */
+#define VGA_COLOR_BLACK    0x0
+#define VGA_COLOR_GREEN    0xA
+#define VGA_COLOR_CYAN     0xB
+#define VGA_COLOR_RED      0xC
+#define VGA_COLOR_WHITE    0xF
+#define VGA_COLOR_YELLOW   0xE
+#define VGA_COLOR_MAGENTA  0xD
 
 /* Инициализация: очистка экрана, сброс курсора. */
 void vga_init(void);

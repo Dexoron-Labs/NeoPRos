@@ -20,18 +20,31 @@ void com1_init(void)
     outb(COM1_MCR, 0x03);        /* DTR и RTS активны */
 }
 
+/*
+ * Цвета в палитре DEFAULT.THM не совпадают со стандартными VGA-именами
+ * (индекс 12 = красный, 11 = циан, 10 = зелёный). Маппим по смыслу:
+ * ANSI 91 = красный, 92 = зелёный, 93 = жёлтый, 94 = синий,
+ * 96 = циан, 97 = белый; разница для фона +10.
+ */
+static const uint8_t ansi_fg_map[16] = {
+    30, 94, 92, 96, 91, 95, 96, 97,
+    90, 93, 92, 96, 91, 90, 93, 97
+};
+static const uint8_t ansi_bg_map[16] = {
+    40, 104, 102, 106, 101, 105, 106, 107,
+    100, 103, 102, 106, 101, 100, 103, 107
+};
+
 /* VGA-цвет (0..15) → ANSI-код текста: 30..37 (обычные) или 90..97 (яркие) */
 static uint8_t ansi_fg(uint8_t vga_color)
 {
-    return (uint8_t)((vga_color & 0x8) ? 90 + (vga_color & 0x7)
-                                       : 30 + vga_color);
+    return ansi_fg_map[vga_color & 0xF];
 }
 
 /* VGA-цвет (0..15) → ANSI-код фона: 40..47 или 100..107 */
 static uint8_t ansi_bg(uint8_t vga_color)
 {
-    return (uint8_t)((vga_color & 0x8) ? 100 + (vga_color & 0x7)
-                                       : 40 + vga_color);
+    return ansi_bg_map[vga_color & 0xF];
 }
 
 void com1_set_color(uint8_t fg, uint8_t bg)

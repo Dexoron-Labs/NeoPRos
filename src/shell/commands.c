@@ -18,6 +18,26 @@ extern char _mb_bss_end[];
 
 /* --- команды ----------------------------------------------------- */
 
+/* Вспомогательные функции в стиле x16-PRos (print_string_*) */
+static void print_green(const char *s)
+{
+    console_set_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK);
+    console_puts(s);
+    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+}
+static void print_cyan(const char *s)
+{
+    console_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
+    console_puts(s);
+    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+}
+static void print_red(const char *s)
+{
+    console_set_color(VGA_COLOR_RED, VGA_COLOR_BLACK);
+    console_puts(s);
+    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+}
+
 static int cmd_help(int argc, char **argv)
 {
     const struct shell_command *cmd;
@@ -25,22 +45,33 @@ static int cmd_help(int argc, char **argv)
     if (argc > 1) {
         cmd = shell_find(argv[1]);
         if (cmd == NULL) {
-            kprintf("help: no such command: %s\n", argv[1]);
+            print_red("help: no such command: ");
+            console_puts(argv[1]);
+            console_putc('\n');
             return 0;
         }
-        kprintf("%s - %s\n", cmd->name, cmd->help);
+        console_puts(cmd->name);
+        console_puts(" - ");
+        console_puts(cmd->help);
+        console_putc('\n');
         return 0;
     }
 
-    kprintf("Available commands:\n");
+    /* формат как в x16-PRos: "CMD  <arg>  - description", верхний регистр */
     for (uint32_t i = 0; (cmd = shell_iter(i)) != NULL; i++) {
-        kprintf("  %s", cmd->name);
-        uint32_t len = strlen(cmd->name);
-        while (len < 12) {
+        const char *n = cmd->name;
+        uint32_t len = 0;
+        while (n[len]) {
+            console_putc((char)to_upper(n[len]));
+            len++;
+        }
+        while (len < 20) {
             console_putc(' ');
             len++;
         }
-        kprintf("%s\n", cmd->help);
+        console_puts("- ");
+        console_puts(cmd->help);
+        console_putc('\n');
     }
     return 0;
 }
@@ -49,7 +80,8 @@ static int cmd_ver(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
-    kprintf("NeoPRos 0.1.0 - 32-bit i386 OS, written by AI\n");
+    console_puts("\n");
+    console_puts("NeoPRos Terminal v0.1.0\n");  /* как version_msg в x16 */
     return 0;
 }
 
@@ -59,16 +91,30 @@ static int cmd_info(int argc, char **argv)
     (void)argv;
     uint32_t total_kb = pmm_total_page_count() * PMM_PAGE_SIZE / 1024;
     uint32_t free_kb = pmm_free_page_count() * PMM_PAGE_SIZE / 1024;
-    uint32_t kernel_kb = ((uint32_t)_mb_bss_end - 0x100000u) / 1024;
 
-    kprintf("System info:\n");
-    kprintf("  OS:         NeoPRos 0.1.0 (i386)\n");
-    kprintf("  Memory:     %u KiB total, %u KiB free\n", total_kb, free_kb);
-    kprintf("  Kernel:     %u KiB [0x100000 - 0x%x]\n", kernel_kb,
-            (uint32_t)_mb_bss_end);
-    kprintf("  Heap:       %u KiB total, %u KiB used\n",
-            kheap_total() / 1024, kheap_used() / 1024);
-    kprintf("  Uptime:     %u s\n", pit_ticks() / PIT_HZ);
+    console_puts("\n");
+    console_set_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK);
+    for (int i = 0; i < 20; i++) {
+        console_putc(0xC4);
+    }
+    console_puts(" INFO ");
+    for (int i = 0; i < 21; i++) {
+        console_putc(0xC4);
+    }
+    console_puts("\n");
+    console_puts("  NeoPRos is the simple 32 bit operating\n");
+    console_puts("  system written in C for i386 PC`s\n");
+    for (int i = 0; i < 47; i++) {
+        console_putc(0xC4);
+    }
+    console_puts("\n");
+    console_puts("  Author:           AI\n");
+    console_puts("  Source code:      GitHub (https://github.com/anomalyco/NeoPRos)\n");
+    console_puts("  License:          GPL-3.0-or-later\n");
+    console_puts("  OS version:       0.1.0\n");
+    kprintf("  Memory:           %u KiB total, %u KiB free\n",
+            total_kb, free_kb);
+    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
     return 0;
 }
 
@@ -98,7 +144,12 @@ static int cmd_date(int argc, char **argv)
     (void)argv;
     struct rtc_time t;
     rtc_get_time(&t);
-    kprintf("%04u-%02u-%02u\n", t.year, t.month, t.day);
+    /* формат x16-PRos: DD/MM/YY, значение голубым */
+    console_puts("Current date: ");
+    char buf[16];
+    ksnprintf(buf, sizeof(buf), "%02u/%02u/%02u\n",
+              t.day, t.month, t.year % 100);
+    print_cyan(buf);
     return 0;
 }
 
@@ -108,7 +159,11 @@ static int cmd_time(int argc, char **argv)
     (void)argv;
     struct rtc_time t;
     rtc_get_time(&t);
-    kprintf("%02u:%02u:%02u\n", t.hour, t.minute, t.second);
+    console_puts("Current time: ");
+    char buf[16];
+    ksnprintf(buf, sizeof(buf), "%02u:%02u:%02u\n",
+              t.hour, t.minute, t.second);
+    print_cyan(buf);
     return 0;
 }
 
@@ -354,24 +409,6 @@ static void expand_bin_name(const char *name, char *out, uint32_t size)
     strcpy(out + n, ".BIN");
 }
 
-static int cmd_ls(int argc, char **argv)
-{
-    char buf[2048];
-    uint32_t count = fs_list((argc > 1) ? argv[1] : NULL, buf, sizeof(buf));
-
-    if (count == 0xFFFFFFFFu) {
-        kprintf("ls: %s: no such directory\n",
-                (argc > 1) ? argv[1] : "/");
-        return 0;
-    }
-    if (argc > 1) {
-        kprintf("%s:\n", argv[1]);
-    }
-    console_puts(buf);
-    kprintf("%u entries\n", count);
-    return 0;
-}
-
 static int cmd_pwd(int argc, char **argv)
 {
     (void)argc;
@@ -384,26 +421,37 @@ static int cmd_pwd(int argc, char **argv)
 
 static int cmd_cd(int argc, char **argv)
 {
+    char cwd[128];
+
     if (argc < 2) {
-        kprintf("cd: usage: cd <dir>\n");
+        /* как в x16-PRos: показываем текущий каталог */
+        fs_getcwd(cwd, sizeof(cwd));
+        console_puts("Current directory: ");
+        console_puts(strcmp(cwd, "/") == 0 ? "A:/" : cwd + 1);
+        console_putc('\n');
         return 0;
     }
     if (!fs_chdir(argv[1])) {
-        kprintf("cd: %s: no such directory\n", argv[1]);
+        print_red("Directory not found or invalid\n");
         return 0;
     }
+    print_green("Directory changed\n");
+    fs_getcwd(cwd, sizeof(cwd));
+    console_puts("Current directory: ");
+    console_puts(strcmp(cwd, "/") == 0 ? "A:/" : cwd + 1);
+    console_putc('\n');
     return 0;
 }
 
 static int cmd_cat(int argc, char **argv)
 {
     if (argc < 2) {
-        kprintf("cat: usage: cat <file>\n");
+        print_red("No filename or not enough filenames\n");
         return 0;
     }
     uint32_t size = fs_size(argv[1]);
     if (size == 0 && !fs_exists(argv[1])) {
-        kprintf("cat: %s: no such file\n", argv[1]);
+        print_red("File not found\n");
         return 0;
     }
     static char buf[4096];
@@ -427,7 +475,7 @@ static int cmd_cat(int argc, char **argv)
         console_putc('\n');
     }
     if (got == sizeof(buf) && size > got) {
-        kprintf("cat: %s: file truncated (too big)\n", argv[1]);
+        print_red("File is too big to display\n");
     }
     return 0;
 }
@@ -435,15 +483,17 @@ static int cmd_cat(int argc, char **argv)
 static int cmd_size(int argc, char **argv)
 {
     if (argc < 2) {
-        kprintf("size: usage: size <file>\n");
+        print_red("No filename or not enough filenames\n");
         return 0;
     }
     uint32_t s = fs_size(argv[1]);
     if (s == 0 && !fs_exists(argv[1])) {
-        kprintf("size: %s: no such file\n", argv[1]);
+        print_red("File not found\n");
         return 0;
     }
-    kprintf("%s: %u bytes\n", argv[1], s);
+    char num[16];
+    ksnprintf(num, sizeof(num), "%u bytes\n", s);
+    print_green(num);
     return 0;
 }
 
@@ -461,36 +511,161 @@ static int cmd_fs(int argc, char **argv)
 }
 
 /* dir — листинг с размерами и итогом (стиль x16-PRos). */
+/* --- листинг в стиле x16-PRos (list_directory, kernel.asm) -------- */
+
+/*
+ * Формат строки из fs_list: "NAME.EXT SIZE\n", каталог: "NAME/ SIZE\n".
+ * Поле имени 12 символов: "NAME     EXT" (8 + пробел + 3), как в x16.
+ */
+static void print_list_line(char *line)
+{
+    /* имя заканчивается на первом пробеле (буфер не мутируем!) */
+    char *sp = NULL;
+    for (char *c = line; *c; c++) {
+        if (*c == ' ') {
+            sp = c;
+            break;
+        }
+    }
+    if (sp == NULL) {
+        return;
+    }
+    char *size_str = sp + 1;
+
+    int is_dir = 0;
+    uint32_t nlen = (uint32_t)(sp - line);
+    if (nlen > 0 && line[nlen - 1] == '/') {
+        is_dir = 1;
+        nlen--;
+    }
+
+    char *dot = NULL;
+    for (uint32_t i = 0; i < nlen; i++) {
+        if (line[i] == '.') {
+            dot = &line[i];
+        }
+    }
+    uint32_t base_len = (dot != NULL) ? (uint32_t)(dot - line) : nlen;
+    uint32_t ext_len = (dot != NULL) ? nlen - (uint32_t)(dot - line) - 1 : 0;
+
+    /* поле имени: 8 + пробел + 3 (без расширения: 8 + 4 пробела) */
+    for (uint32_t i = 0; i < 8; i++) {
+        console_putc(i < base_len ? line[i] : ' ');
+    }
+    if (ext_len > 0) {
+        console_putc(' ');
+        for (uint32_t i = 0; i < 3; i++) {
+            console_putc(i < ext_len ? dot[1 + i] : ' ');
+        }
+    } else {
+        for (int i = 0; i < 4; i++) {
+            console_putc(' ');
+        }
+    }
+    console_puts("  ");
+
+    /* размер (5 цифр справа) или метка каталога */
+    uint32_t sz = 0;
+    for (char *c = size_str; *c >= '0' && *c <= '9'; c++) {
+        sz = sz * 10 + (uint32_t)(*c - '0');
+    }
+    if (is_dir) {
+        console_set_color(VGA_COLOR_MAGENTA, VGA_COLOR_BLACK);
+        console_puts("<DIR>");
+        console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+        for (int i = 0; i < 7; i++) {
+            console_putc(' ');
+        }
+    } else {
+        uint32_t digits = 1;
+        uint32_t t = sz;
+        while (t >= 10) {
+            t /= 10;
+            digits++;
+        }
+        for (uint32_t i = digits; i < 5; i++) {
+            console_putc(' ');
+        }
+        console_print_dec32(sz);
+        for (int i = 0; i < 7; i++) {
+            console_putc(' ');
+        }
+    }
+}
+
 static int cmd_dir(int argc, char **argv)
 {
-    char buf[2048];
+    static char buf[2048];
     const char *dir = (argc > 1) ? argv[1] : NULL;
     uint32_t count = fs_list(dir, buf, sizeof(buf));
 
     if (count == 0xFFFFFFFFu) {
-        kprintf("dir: %s: no such directory\n",
-                (argc > 1) ? argv[1] : "/");
+        print_red("File not found\n");
         return 0;
     }
-    uint32_t bytes;
-    fs_dir_info(dir, &bytes);
-    console_puts(buf);
-    kprintf("%u entries, %u bytes total\n", count, bytes);
+
+    /* заголовок "A:/" + текущий каталог */
+    char cwd[128];
+    fs_getcwd(cwd, sizeof(cwd));
+    console_puts("\n");
+    console_puts("A:/");
+    if (strcmp(cwd, "/") != 0) {
+        console_puts(cwd + 1);
+    }
+    console_puts("\n\n");
+
+    /* строки по 3 записи в колонке 26 символов */
+    uint32_t col = 0;
+    char *line = buf;
+    while (*line) {
+        print_list_line(line);
+        col++;
+        if (col == 3) {
+            console_putc('\n');
+            col = 0;
+        }
+        while (*line && *line != '\n') {
+            line++;
+        }
+        if (*line == '\n') {
+            line++;
+        }
+    }
+    if (col != 0) {
+        console_putc('\n');
+    }
+
+    /* итог: "N files", занято и свободно (как в x16-PRos) */
+    uint32_t total_kb = fs_image_size() / 1024;
+    uint32_t free_kb = fs_free_space() / 1024;
+    uint32_t used_kb = total_kb - free_kb;
+    char num[16];
+
+    console_puts("\n");
+    ksnprintf(num, sizeof(num), "%u", count);
+    print_cyan(num);
+    console_puts(" files   ");
+    ksnprintf(num, sizeof(num), "%u", used_kb);
+    print_green(num);
+    console_puts(" KB\n");
+    ksnprintf(num, sizeof(num), "%u", free_kb);
+    print_green(num);
+    console_puts(" KB free\n\n");
     return 0;
 }
 
-/* del — удаление файла. */
+/* del — удаление файла (сообщения как в x16-PRos). */
 static int cmd_del(int argc, char **argv)
 {
     if (argc < 2) {
-        kprintf("del: usage: del <file>\n");
+        print_red("No filename or not enough filenames\n");
         return 0;
     }
     if (!fs_remove(argv[1])) {
-        kprintf("del: %s: cannot delete\n", argv[1]);
+        print_red("File not found\n");
         return 0;
     }
-    kprintf("del: %s deleted\n", argv[1]);
+    print_green("Deleted file.\n");
     return 0;
 }
 
@@ -498,28 +673,32 @@ static int cmd_del(int argc, char **argv)
 static int cmd_copy(int argc, char **argv)
 {
     if (argc < 3) {
-        kprintf("copy: usage: copy <src> <dst>\n");
+        print_red("No filename or not enough filenames\n");
         return 0;
     }
     if (fs_is_dir(argv[1])) {
-        kprintf("copy: %s: is a directory\n", argv[1]);
+        print_red("File not found\n");
+        return 0;
+    }
+    if (fs_exists(argv[2])) {
+        print_red("Target file already exists!\n");
         return 0;
     }
     static char buf[32768];
     uint32_t size = fs_load(argv[1], buf, sizeof(buf));
     if (size == 0) {
         if (fs_exists(argv[1])) {
-            kprintf("copy: %s: file too big\n", argv[1]);
+            print_red("File is too big\n");
         } else {
-            kprintf("copy: %s: no such file\n", argv[1]);
+            print_red("File not found\n");
         }
         return 0;
     }
     if (!fs_write(argv[2], buf, size)) {
-        kprintf("copy: %s: cannot create\n", argv[2]);
+        print_red("Could not write file. Write protected or invalid filename?\n");
         return 0;
     }
-    kprintf("copy: %s -> %s (%u bytes)\n", argv[1], argv[2], size);
+    print_green("File copied successfully\n");
     return 0;
 }
 
@@ -527,28 +706,29 @@ static int cmd_copy(int argc, char **argv)
 static int cmd_ren(int argc, char **argv)
 {
     if (argc < 3) {
-        kprintf("ren: usage: ren <src> <dst>\n");
+        print_red("No filename or not enough filenames\n");
         return 0;
     }
     if (!fs_rename(argv[1], argv[2])) {
-        kprintf("ren: %s: cannot rename\n", argv[1]);
+        print_red("File not found\n");
         return 0;
     }
-    kprintf("ren: %s -> %s\n", argv[1], argv[2]);
+    print_green("File renamed successfully\n");
     return 0;
 }
 
-/* touch — создать пустой файл или обновить время. */
+/* touch — создать пустой файл. */
 static int cmd_touch(int argc, char **argv)
 {
     if (argc < 2) {
-        kprintf("touch: usage: touch <file>\n");
+        print_red("No filename or not enough filenames\n");
         return 0;
     }
     if (!fs_touch(argv[1])) {
-        kprintf("touch: %s: cannot create\n", argv[1]);
+        print_red("Could not create file\n");
         return 0;
     }
+    print_green("File created successfully\n");
     return 0;
 }
 
@@ -556,14 +736,14 @@ static int cmd_touch(int argc, char **argv)
 static int cmd_write(int argc, char **argv)
 {
     if (argc < 3) {
-        kprintf("write: usage: write <file> <data>\n");
+        print_red("No filename or not enough filenames\n");
         return 0;
     }
     if (!fs_write(argv[1], argv[2], strlen(argv[2]))) {
-        kprintf("write: %s: cannot create\n", argv[1]);
+        print_red("Could not write file. Write protected or invalid filename?\n");
         return 0;
     }
-    kprintf("write: %s (%u bytes)\n", argv[1], strlen(argv[2]));
+    print_green("File created successfully\n");
     return 0;
 }
 
@@ -571,13 +751,14 @@ static int cmd_write(int argc, char **argv)
 static int cmd_mkdir(int argc, char **argv)
 {
     if (argc < 2) {
-        kprintf("mkdir: usage: mkdir <dirname>\n");
+        print_red("No filename or not enough filenames\n");
         return 0;
     }
     if (!fs_mkdir(argv[1])) {
-        kprintf("mkdir: %s: cannot create\n", argv[1]);
+        print_red("Could not create directory\n");
         return 0;
     }
+    print_green("Directory created successfully\n");
     return 0;
 }
 
@@ -585,14 +766,14 @@ static int cmd_mkdir(int argc, char **argv)
 static int cmd_deldir(int argc, char **argv)
 {
     if (argc < 2) {
-        kprintf("deldir: usage: deldir <name>\n");
+        print_red("No filename or not enough filenames\n");
         return 0;
     }
     if (!fs_rmdir(argv[1])) {
-        kprintf("deldir: %s: not empty or not a directory\n", argv[1]);
+        print_red("Directory not empty or not found\n");
         return 0;
     }
-    kprintf("deldir: %s removed\n", argv[1]);
+    print_green("Directory deleted successfully\n");
     return 0;
 }
 
@@ -654,7 +835,7 @@ static const struct shell_command shell_commands[] = {
     { "reboot",   "reboot the system",               cmd_reboot },
     { "shutdown", "power off the system",            cmd_shutdown },
     { "exit",     "exit the shell",                  cmd_exit },
-    { "ls",       "list directory (FAT12 ramdisk)",  cmd_ls },
+    { "ls",       "list directory (FAT12 ramdisk)",  cmd_dir },
     { "pwd",      "print current directory",         cmd_pwd },
     { "cd",       "change current directory",        cmd_cd },
     { "cat",      "print file contents",             cmd_cat },

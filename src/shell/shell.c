@@ -5,9 +5,13 @@
 #include "lib/string.h"
 
 /* Имя и приглашение оболочки. Чтобы "сменить prosh на sh",
- * достаточно поменять эти строки — остальной код их использует. */
+ * достаточно поменять эти строки — остальной код их использует.
+ * Приглашение — в формате x16-PRos: "[user@NeoPRos] > ". */
 const char *shell_name = "prosh";
-const char *shell_prompt = "prosh> ";
+const char *shell_prompt = "[user@NeoPRos] > ";
+
+/* Глобальная таблица команд */
+static const struct shell_command *commands[SHELL_MAX_COMMANDS];
 
 /* Глобальная таблица команд */
 static const struct shell_command *commands[SHELL_MAX_COMMANDS];
@@ -131,7 +135,10 @@ int shell_exec(int argc, char **argv)
         if (exec_fallback != NULL && exec_fallback(argc, argv) == 0) {
             return 0;
         }
-        kprintf("%s: command not found: %s\n", shell_name, argv[0]);
+        /* сообщение в стиле x16-PRos (invalid_msg) */
+        console_set_color(VGA_COLOR_RED, VGA_COLOR_BLACK);
+        console_puts("No such command or program\n");
+        console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
         return 0;
     }
     return cmd->handler(argc, argv);
@@ -153,11 +160,82 @@ int shell_run_line(const char *line)
     return shell_exec(argc, argv);
 }
 
+/* --- интерфейс при старте (стиль x16-PRos, kernel.asm) ------------ */
+
+/* Верхняя рамка-заголовок: блоки 0xB0/0xB1/0xB2/0xDB с именем ОС. */
+static void print_header(void)
+{
+    int i;
+
+    for (i = 0; i < 16; i++) {
+        console_putc(0xB0);
+    }
+    for (i = 0; i < 8; i++) {
+        console_putc(0xB1);
+    }
+    for (i = 0; i < 6; i++) {
+        console_putc(0xB2);
+    }
+    console_putc(0xDB);
+    console_putc(0xDB);
+    console_puts(" NeoPRos v0.1.0 ");
+    console_putc(0xDB);
+    console_putc(0xDB);
+    for (i = 0; i < 6; i++) {
+        console_putc(0xB2);
+    }
+    for (i = 0; i < 8; i++) {
+        console_putc(0xB1);
+    }
+    for (i = 0; i < 16; i++) {
+        console_putc(0xB0);
+    }
+    console_putc('\n');
+}
+
+/* ASCII-арт "NeoPRos" (тот же стиль, что арт "PRos" в x16-PRos). */
+static const char *logo_art[] = {
+    "  _   _   _____   ____   _____  ____   _____ ",
+    " | \\ | | |  __ \\ / __ \\ / ____|/ __ \\ / ____|",
+    " |  \\| | | |__) | |  | | (___ | |  | | (___  ",
+    " | . ` | |  ___/| |  | |\\___ \\| |  | |\\___ \\ ",
+    " | |\\  | | |    | |__| |____) | |__| |____) |",
+    " |_| \\_| |_|    |\\____/|_____/ \\____/|_____/ ",
+};
+
+/* Полоса из 15 цветовых блоков (цвета 0-14), как в x16-PRos. */
+static void print_color_blocks(void)
+{
+    for (int i = 0; i < 15; i++) {
+        console_set_color((uint8_t)i, VGA_COLOR_BLACK);
+        console_putc(0xDB);
+    }
+    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+    console_putc('\n');
+}
+
 int shell_main(void)
 {
-    console_set_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK);
-    kprintf("NeoPRos shell (%s) - type 'help' for commands.\n", shell_name);
+    console_clear();
+
+    print_header();
+    console_puts("\n\n");
+
+    for (uint32_t i = 0; i < sizeof(logo_art) / sizeof(logo_art[0]); i++) {
+        console_puts(logo_art[i]);
+        console_puts("\n");
+    }
+    console_puts("\n");
+
+    console_puts("* Copyright (C) 2026 NeoPRos Project\n");
+    console_puts("* Shell: NeoPRos Terminal v0.1.0\n\n");
+
+    console_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
+    console_puts("Type HELP to get list of the commands\n");
     console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+
+    print_color_blocks();
+    console_puts("\n\n");
 
     for (;;) {
         char *line = readline(shell_prompt);

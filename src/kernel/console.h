@@ -21,6 +21,9 @@ void console_clear(void);
  * Поддерживаются: %s %c %d %u %x %% — для остального вывод как есть. */
 void kprintf(const char *fmt, ...);
 
+/* Форматирование в буфер (тот же формат, что kprintf). */
+void ksnprintf(char *buf, uint32_t size, const char *fmt, ...);
+
 /* Вариант с готовым va_list (используется системным API). */
 void vkprintf(const char *fmt, __builtin_va_list ap);
 

@@ -184,3 +184,21 @@ void kprintf(const char *fmt, ...)
     vkprintf(fmt, ap);
     va_end(ap);
 }
+
+/* Форматирование в буфер (тот же формат, что kprintf; буфер 256). */
+void ksnprintf(char *buf, uint32_t size, const char *fmt, ...)
+{
+    char tmp[256];
+    va_list ap;
+
+    va_start(ap, fmt);
+    kvformat(tmp, fmt, ap);
+    va_end(ap);
+
+    uint32_t i = 0;
+    while (tmp[i] && i + 1 < size) {
+        buf[i] = tmp[i];
+        i++;
+    }
+    buf[i] = '\0';
+}

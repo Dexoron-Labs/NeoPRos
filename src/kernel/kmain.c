@@ -27,7 +27,38 @@
  *   info_addr — физический адрес структуры multiboot_info.
  *
  * Все строки — только ASCII: выводятся в VGA и COM1 одинаково.
+ * Загрузочные сообщения — в формате x16-PRos: [ OKAY ]/[ WARN ].
  */
+
+/* --- загрузочный лог в стиле x16-PRos (log.asm) ------------------ */
+
+static void log_okay(const char *msg)
+{
+    console_set_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK);
+    console_puts("[ OKAY ]  ");
+    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+    console_puts(msg);
+    console_puts("\n");
+}
+
+static void log_warn(const char *msg)
+{
+    console_set_color(VGA_COLOR_YELLOW, VGA_COLOR_BLACK);
+    console_puts("[ WARN ]  ");
+    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+    console_puts(msg);
+    console_puts("\n");
+}
+
+static void log_error(const char *msg)
+{
+    console_set_color(VGA_COLOR_RED, VGA_COLOR_BLACK);
+    console_puts("[ ERROR ] ");
+    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+    console_puts(msg);
+    console_puts("\n");
+}
+
 void kmain(uint32_t magic, uint32_t info_addr)
 {
     const struct multiboot_info *info =
@@ -36,44 +67,14 @@ void kmain(uint32_t magic, uint32_t info_addr)
     /* --- инициализация подсистем ядра ---------------------- */
     gdt_init();        /* собственная GDT + перезагрузка сегментов */
     console_init();    /* VGA text mode + COM1 (единая консоль) */
-
-    /* --- заставка ------------------------------------------- */
-    console_set_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK);
-    console_puts("NeoPRos 0.1.0 - 32-bit i386 OS, written by AI\n");
-    console_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
-    console_puts("================================================\n\n");
+    log_okay("Segment initialization");
 
     /* --- проверка магического числа загрузчика -------------- */
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
-        console_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
-        console_puts("Boot: multiboot (FAILED: bad magic)\n");
+        log_error("Boot: multiboot (FAILED: bad magic)");
         for (;;) {
             __asm__ volatile("cli; hlt");
         }
-    }
-
-    console_puts("Boot: multiboot (OK)\n");
-
-    console_puts("MBI flags: ");
-    console_print_hex32(info->flags);
-    console_puts("\n");
-
-    /* --- сведения о памяти из multiboot_info ----------------- */
-    if (info->flags & MBI_FLAG_MEMORY) {
-        console_puts("Low memory:  ");
-        console_print_dec32(info->mem_lower);
-        console_puts(" KiB\n");
-        console_puts("High memory: ");
-        console_print_dec32(info->mem_upper);
-        console_puts(" KiB\n");
-    }
-
-    /* --- имя загрузчика -------------------------------------- */
-    if (info->flags & MBI_FLAG_BOOTLOADER) {
-        const char *name = (const char *)info->boot_loader_name;
-        console_puts("Bootloader: ");
-        console_puts(name);
-        console_puts("\n");
     }
 
     /* --- прерывания и аппаратные драйверы -------------------- */
@@ -85,7 +86,7 @@ void kmain(uint32_t magic, uint32_t info_addr)
     pic_enable_irq(0); /* таймер */
     pic_enable_irq(1); /* клавиатура */
 
-    console_puts("Interrupts: OK\n");
+    log_okay("Timer initialization");
 
     __asm__ volatile("sti");
 
@@ -109,26 +110,22 @@ void kmain(uint32_t magic, uint32_t info_addr)
     pmm_reserve_range(fs_image_base(), fs_image_size());  /* RAM-диск */
     kheap_init(256u * 1024u);       /* куча ядра: 256 КиБ стартово */
 
-    console_puts("Memory: ");
-    console_print_dec32(pmm_total_page_count() * PMM_PAGE_SIZE / 1024);
-    console_puts(" KiB total, ");
-    console_print_dec32(pmm_free_page_count() * PMM_PAGE_SIZE / 1024);
-    console_puts(" KiB free\n");
+    log_okay("Memory allocator");
 
     /* --- файловая система (RAM-диск из multiboot-модуля) ------ */
     if (fs_available()) {
-        kprintf("FS: FAT12 ramdisk OK (%s), %u bytes\n",
-                fs_image_name(), fs_image_size());
+        log_okay("File System API (FAT12 ramdisk)");
     } else {
-        console_puts("FS: no RAM disk (run QEMU with -initrd)\n");
+        log_warn("File System API (no RAM disk)");
     }
 
     /* --- системный API ------------------------------------------ */
     sysapi_init(info_addr);
-    kprintf("API: syscall table at 0x%x\n", (uint32_t)sysapi_get());
+    log_okay("API initialization");
 
     /* --- командная оболочка prosh ----------------------------- */
     commands_init();
+    log_okay("Shell initialization");
 
     if (shell_main() == SHELL_EXIT) {
         console_puts("\nSystem halted.\n");
