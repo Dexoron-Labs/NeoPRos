@@ -462,25 +462,24 @@ static int cmd_fs(int argc, char **argv)
 
 /* --- запуск программ --------------------------------------------------- */
 
-static int cmd_run(int argc, char **argv)
+/*
+ * Запуск .BIN по имени (стиль x16-PRos: программа вводится как команда,
+ * расширение .BIN дополняется автоматически). Аргументы — с argv[1].
+ */
+static int run_program(const char *name, int argc, char **argv)
 {
-    if (argc < 2) {
-        kprintf("run: usage: run <program.bin> [args...]\n");
-        return 0;
-    }
-    char name[16];
-    expand_bin_name(argv[1], name, sizeof(name));
-    if (!fs_exists(name)) {
-        kprintf("run: %s: program not found\n", name);
-        return 0;
+    char fname[16];
+    expand_bin_name(name, fname, sizeof(fname));
+    if (!fs_exists(fname)) {
+        return -1;
     }
 
-    /* командная строка: склеиваем аргументы с 3-го */
+    /* командная строка: склеиваем аргументы с 1-го */
     char args[READLINE_MAX_LEN + 1];
     char *d = args;
-    for (int i = 2; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
         const char *s = argv[i];
-        if (i > 2) {
+        if (i > 1) {
             *d++ = ' ';
         }
         while (*s) {
@@ -489,12 +488,17 @@ static int cmd_run(int argc, char **argv)
     }
     *d = '\0';
 
-    int code = loader_run(name, args);
+    int code = loader_run(fname, args);
     if (code < 0) {
-        kprintf("run: %s: failed to load\n", name);
-        return 0;
+        kprintf("%s: failed to load\n", fname);
     }
     return 0;
+}
+
+/* Неизвестная команда: пробуем исполнить как .BIN-файл. */
+static int exec_as_program(int argc, char **argv)
+{
+    return run_program(argv[0], argc, argv);
 }
 
 /* --- таблица команд ---------------------------------------------- */
@@ -520,8 +524,6 @@ static const struct shell_command shell_commands[] = {
     { "cat",      "print file contents",             cmd_cat },
     { "size",     "print file size",                 cmd_size },
     { "fs",       "print filesystem status",         cmd_fs },
-    { "run",      "run a .BIN program",              cmd_run },
-    { "exec",     "alias for run",                   cmd_run },
 };
 
 void commands_init(void)
@@ -530,4 +532,6 @@ void commands_init(void)
          i < sizeof(shell_commands) / sizeof(shell_commands[0]); i++) {
         shell_register(&shell_commands[i]);
     }
+    /* неизвестные команды исполняются как .BIN-программы (как в x16-PRos) */
+    shell_set_fallback(exec_as_program);
 }

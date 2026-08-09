@@ -13,6 +13,14 @@ const char *shell_prompt = "prosh> ";
 static const struct shell_command *commands[SHELL_MAX_COMMANDS];
 static uint32_t command_count;
 
+/* Обработчик неизвестных команд: 0 — обработано, -1 — не распознано. */
+static int (*exec_fallback)(int argc, char **argv);
+
+void shell_set_fallback(int (*fn)(int argc, char **argv))
+{
+    exec_fallback = fn;
+}
+
 void shell_register(const struct shell_command *cmd)
 {
     if (cmd == NULL || cmd->name == NULL ||
@@ -120,6 +128,9 @@ int shell_exec(int argc, char **argv)
 
     const struct shell_command *cmd = shell_find(argv[0]);
     if (cmd == NULL) {
+        if (exec_fallback != NULL && exec_fallback(argc, argv) == 0) {
+            return 0;
+        }
         kprintf("%s: command not found: %s\n", shell_name, argv[0]);
         return 0;
     }
