@@ -121,6 +121,41 @@ static void api_fs_getcwd(char *buf, uint32_t size)
     fs_getcwd(buf, size);
 }
 
+static int api_fs_write(const char *name, const void *data, uint32_t size)
+{
+    return fs_write(name, data, size);
+}
+
+static int api_fs_remove(const char *name)
+{
+    return fs_remove(name);
+}
+
+static int api_fs_rename(const char *oldname, const char *newname)
+{
+    return fs_rename(oldname, newname);
+}
+
+static int api_fs_is_dir(const char *name)
+{
+    return fs_is_dir(name);
+}
+
+static int api_fs_mkdir(const char *name)
+{
+    return fs_mkdir(name);
+}
+
+static int api_fs_rmdir(const char *name)
+{
+    return fs_rmdir(name);
+}
+
+static uint32_t api_fs_free_space(void)
+{
+    return fs_free_space();
+}
+
 /* --- запуск программ ------------------------------------------------ */
 
 static int api_exec(const char *name, const char *args)
@@ -160,6 +195,14 @@ static struct neopros_api sysapi_table = {
 
     .exec = api_exec,
     .exit = api_exit,
+
+    .fs_write = api_fs_write,
+    .fs_remove = api_fs_remove,
+    .fs_rename = api_fs_rename,
+    .fs_is_dir = api_fs_is_dir,
+    .fs_mkdir = api_fs_mkdir,
+    .fs_rmdir = api_fs_rmdir,
+    .fs_free_space = api_fs_free_space,
 };
 
 void sysapi_init(uint32_t mbi_addr)

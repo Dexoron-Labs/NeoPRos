@@ -44,6 +44,10 @@ from = "target/i386-none-elf/{profile}/test.bin"
 to = "TEST.BIN"
 
 [[archive.layout]]
+from = "target/i386-none-elf/{profile}/fsio.bin"
+to = "FSIO.BIN"
+
+[[archive.layout]]
 from = "programs/readme.txt"
 to = "README.TXT"
 

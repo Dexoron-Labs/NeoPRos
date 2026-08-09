@@ -86,6 +86,22 @@ struct neopros_api {
     int (*exec)(const char *name, const char *args);
     /* Завершить текущую программу с кодом (не возвращается). */
     void (*exit)(int code);
+
+    /* --- файловая система: запись (порт из x16-PRos) -------- */
+    /* Запись файла (создание или перезапись); 1 ок, 0 ошибка. */
+    int (*fs_write)(const char *name, const void *data, uint32_t size);
+    /* Удаление файла; 1 ок, 0 ошибка. */
+    int (*fs_remove)(const char *name);
+    /* Переименование; 1 ок, 0 ошибка. */
+    int (*fs_rename)(const char *oldname, const char *newname);
+    /* Является ли имя каталогом (1) или нет (0). */
+    int (*fs_is_dir)(const char *name);
+    /* Создание каталога; 1 ок, 0 ошибка. */
+    int (*fs_mkdir)(const char *name);
+    /* Удаление пустого каталога; 1 ок, 0 ошибка. */
+    int (*fs_rmdir)(const char *name);
+    /* Свободное место на диске, байт. */
+    uint32_t (*fs_free_space)(void);
 };
 
 /*
