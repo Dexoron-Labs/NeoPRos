@@ -1132,3 +1132,62 @@ uint32_t fs_free_space(void)
     }
     return free * (uint32_t)bpb_bps * bpb_spc;
 }
+
+/*
+ * Сводка каталога: число записей и суммарный размер файлов (байт),
+ * подкаталоги не считаются. Возвращает число записей или 0xFFFFFFFF
+ * при ошибке (нет каталога).
+ */
+uint32_t fs_dir_info(const char *dir, uint32_t *bytes)
+{
+    if (disk_base == NULL) {
+        return 0xFFFFFFFFu;
+    }
+    struct fat_dirent e;
+    uint16_t start;
+    if (dir == NULL || *dir == '\0') {
+        start = (cwd_depth == 0) ? 0 : cwd_stack[cwd_depth - 1];
+    } else {
+        if (!fs_find(dir, &e, &start) || !(e.attr & FAT_ATTR_DIR)) {
+            return 0xFFFFFFFFu;
+        }
+        start = e.first_cluster;
+    }
+    struct dir_iter it;
+    uint32_t count = 0, total = 0;
+    dir_iter_init(&it, start);
+    while (dir_iter_next(&it, &e)) {
+        if (e.name[0] == '.' &&
+            (e.name[1] == ' ' || e.name[1] == '.')) {
+            continue;
+        }
+        count++;
+        if (!(e.attr & FAT_ATTR_DIR)) {
+            total += e.file_size;
+        }
+    }
+    if (bytes != NULL) {
+        *bytes = total;
+    }
+    return count;
+}
+
+/*
+ * Обновление времени файла/каталога: создаёт пустой файл, если его
+ * нет (стиль touch), иначе только обновляет запись каталога, не
+ * трогая содержимое.
+ */
+int fs_touch(const char *name)
+{
+    if (disk_base == NULL || name == NULL || *name == '\0') {
+        return 0;
+    }
+    struct fat_dirent e;
+    uint16_t dir;
+    if (!fs_find(name, &e, &dir)) {
+        return dir_create_entry(dir, path_last_component(name),
+                                FAT_ATTR_ARCHIVE, 0, 0);
+    }
+    return dir_update_entry(dir, path_last_component(name),
+                            e.first_cluster, e.file_size);
+}

@@ -460,6 +460,142 @@ static int cmd_fs(int argc, char **argv)
     return 0;
 }
 
+/* dir — листинг с размерами и итогом (стиль x16-PRos). */
+static int cmd_dir(int argc, char **argv)
+{
+    char buf[2048];
+    const char *dir = (argc > 1) ? argv[1] : NULL;
+    uint32_t count = fs_list(dir, buf, sizeof(buf));
+
+    if (count == 0xFFFFFFFFu) {
+        kprintf("dir: %s: no such directory\n",
+                (argc > 1) ? argv[1] : "/");
+        return 0;
+    }
+    uint32_t bytes;
+    fs_dir_info(dir, &bytes);
+    console_puts(buf);
+    kprintf("%u entries, %u bytes total\n", count, bytes);
+    return 0;
+}
+
+/* del — удаление файла. */
+static int cmd_del(int argc, char **argv)
+{
+    if (argc < 2) {
+        kprintf("del: usage: del <file>\n");
+        return 0;
+    }
+    if (!fs_remove(argv[1])) {
+        kprintf("del: %s: cannot delete\n", argv[1]);
+        return 0;
+    }
+    kprintf("del: %s deleted\n", argv[1]);
+    return 0;
+}
+
+/* copy — копирование файла (до 32 КБ, как в x16-PRos). */
+static int cmd_copy(int argc, char **argv)
+{
+    if (argc < 3) {
+        kprintf("copy: usage: copy <src> <dst>\n");
+        return 0;
+    }
+    if (fs_is_dir(argv[1])) {
+        kprintf("copy: %s: is a directory\n", argv[1]);
+        return 0;
+    }
+    static char buf[32768];
+    uint32_t size = fs_load(argv[1], buf, sizeof(buf));
+    if (size == 0) {
+        if (fs_exists(argv[1])) {
+            kprintf("copy: %s: file too big\n", argv[1]);
+        } else {
+            kprintf("copy: %s: no such file\n", argv[1]);
+        }
+        return 0;
+    }
+    if (!fs_write(argv[2], buf, size)) {
+        kprintf("copy: %s: cannot create\n", argv[2]);
+        return 0;
+    }
+    kprintf("copy: %s -> %s (%u bytes)\n", argv[1], argv[2], size);
+    return 0;
+}
+
+/* ren — переименование файла или каталога. */
+static int cmd_ren(int argc, char **argv)
+{
+    if (argc < 3) {
+        kprintf("ren: usage: ren <src> <dst>\n");
+        return 0;
+    }
+    if (!fs_rename(argv[1], argv[2])) {
+        kprintf("ren: %s: cannot rename\n", argv[1]);
+        return 0;
+    }
+    kprintf("ren: %s -> %s\n", argv[1], argv[2]);
+    return 0;
+}
+
+/* touch — создать пустой файл или обновить время. */
+static int cmd_touch(int argc, char **argv)
+{
+    if (argc < 2) {
+        kprintf("touch: usage: touch <file>\n");
+        return 0;
+    }
+    if (!fs_touch(argv[1])) {
+        kprintf("touch: %s: cannot create\n", argv[1]);
+        return 0;
+    }
+    return 0;
+}
+
+/* write — создать текстовый файл с заданным содержимым. */
+static int cmd_write(int argc, char **argv)
+{
+    if (argc < 3) {
+        kprintf("write: usage: write <file> <data>\n");
+        return 0;
+    }
+    if (!fs_write(argv[1], argv[2], strlen(argv[2]))) {
+        kprintf("write: %s: cannot create\n", argv[1]);
+        return 0;
+    }
+    kprintf("write: %s (%u bytes)\n", argv[1], strlen(argv[2]));
+    return 0;
+}
+
+/* mkdir — создать каталог. */
+static int cmd_mkdir(int argc, char **argv)
+{
+    if (argc < 2) {
+        kprintf("mkdir: usage: mkdir <dirname>\n");
+        return 0;
+    }
+    if (!fs_mkdir(argv[1])) {
+        kprintf("mkdir: %s: cannot create\n", argv[1]);
+        return 0;
+    }
+    return 0;
+}
+
+/* deldir — удалить пустой каталог. */
+static int cmd_deldir(int argc, char **argv)
+{
+    if (argc < 2) {
+        kprintf("deldir: usage: deldir <name>\n");
+        return 0;
+    }
+    if (!fs_rmdir(argv[1])) {
+        kprintf("deldir: %s: not empty or not a directory\n", argv[1]);
+        return 0;
+    }
+    kprintf("deldir: %s removed\n", argv[1]);
+    return 0;
+}
+
 /* --- запуск программ --------------------------------------------------- */
 
 /*
@@ -523,6 +659,14 @@ static const struct shell_command shell_commands[] = {
     { "cd",       "change current directory",        cmd_cd },
     { "cat",      "print file contents",             cmd_cat },
     { "size",     "print file size",                 cmd_size },
+    { "dir",      "list files with sizes and total", cmd_dir },
+    { "del",      "delete a file",                   cmd_del },
+    { "copy",     "copy a file",                     cmd_copy },
+    { "ren",      "rename a file or directory",      cmd_ren },
+    { "touch",    "create empty file or touch time", cmd_touch },
+    { "write",    "create text file with data",      cmd_write },
+    { "mkdir",    "create a directory",              cmd_mkdir },
+    { "deldir",   "delete an empty directory",       cmd_deldir },
     { "fs",       "print filesystem status",         cmd_fs },
 };
 
