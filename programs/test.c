@@ -6,6 +6,9 @@
 
 void _start(struct neopros_api *api, int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     char buf[512];
 
     api->puts("FS API test\n");

@@ -48,6 +48,38 @@ from = "target/i386-none-elf/{profile}/fsio.bin"
 to = "FSIO.BIN"
 
 [[archive.layout]]
+from = "target/i386-none-elf/{profile}/fetch.bin"
+to = "FETCH.BIN"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/tree.bin"
+to = "TREE.BIN"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/head.bin"
+to = "HEAD.BIN"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/tail.bin"
+to = "TAIL.BIN"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/grep.bin"
+to = "GREP.BIN"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/chars.bin"
+to = "CHARS.BIN"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/calendar.bin"
+to = "CALENDAR.BIN"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/procentc.bin"
+to = "PROCENTC.BIN"
+
+[[archive.layout]]
 from = "programs/readme.txt"
 to = "README.TXT"
 
