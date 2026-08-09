@@ -1,7 +1,7 @@
 #ifndef NEOPROS_ISR_H
 #define NEOPROS_ISR_H
 
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 
 /* Сохранённый контекст прерывания (layout в src/boot/isr_stubs.S) */
 struct irq_regs {

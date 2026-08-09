@@ -1,5 +1,5 @@
-#include "pit.h"
-#include "io.h"
+#include "kernel/pit.h"
+#include "kernel/io.h"
 
 /* Базовый счётчик PIT: 1193182 Гц */
 #define PIT_BASE_FREQ 1193182

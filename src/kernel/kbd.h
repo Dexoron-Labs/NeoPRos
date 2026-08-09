@@ -1,7 +1,7 @@
 #ifndef NEOPROS_KBD_H
 #define NEOPROS_KBD_H
 
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 
 /* Размер кольцевого буфера сканкодов */
 #define KBD_BUFFER_SIZE 128

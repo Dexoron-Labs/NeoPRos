@@ -1,14 +1,17 @@
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 #include "gdt.h"
 #include "idt.h"
-#include "pit.h"
-#include "kbd.h"
-#include "rtc.h"
-#include "console.h"
-#include "pmm.h"
-#include "kheap.h"
-#include "shell.h"
-#include "commands.h"
+#include "kernel/pit.h"
+#include "kernel/kbd.h"
+#include "kernel/rtc.h"
+#include "kernel/console.h"
+#include "mm/pmm.h"
+#include "mm/kheap.h"
+#include "fs/fs.h"
+#include "loader/loader.h"
+#include "api/sysapi.h"
+#include "shell/shell.h"
+#include "shell/commands.h"
 
 /* Флаги структуры multiboot_info (спецификация Multiboot) */
 #define MBI_FLAG_MEMORY      (1u << 0)   /* mem_lower/mem_upper валидны */
@@ -97,14 +100,32 @@ void kmain(uint32_t magic, uint32_t info_addr)
     }
 
     /* --- менеджеры памяти ------------------------------------- */
-    pmm_init(info);                  /* физическая память (bitmap) */
-    kheap_init(256u * 1024u);        /* куча ядра: 256 КиБ стартово */
+    /* ФС инициализируется до pmm_init: битовая карта pmm размещается
+     * сразу после ядра и перекрывает список модулей Multiboot,
+     * так что после pmm_init модули уже не найти. */
+    fs_init(info);                  /* FAT12: RAM-диск (multiboot-модуль) */
+    pmm_init(info);                 /* физическая память (bitmap) */
+    loader_init();                  /* резерв зоны программ .BIN */
+    pmm_reserve_range(fs_image_base(), fs_image_size());  /* RAM-диск */
+    kheap_init(256u * 1024u);       /* куча ядра: 256 КиБ стартово */
 
     console_puts("Memory: ");
     console_print_dec32(pmm_total_page_count() * PMM_PAGE_SIZE / 1024);
     console_puts(" KiB total, ");
     console_print_dec32(pmm_free_page_count() * PMM_PAGE_SIZE / 1024);
     console_puts(" KiB free\n");
+
+    /* --- файловая система (RAM-диск из multiboot-модуля) ------ */
+    if (fs_available()) {
+        kprintf("FS: FAT12 ramdisk OK (%s), %u bytes\n",
+                fs_image_name(), fs_image_size());
+    } else {
+        console_puts("FS: no RAM disk (run QEMU with -initrd)\n");
+    }
+
+    /* --- системный API ------------------------------------------ */
+    sysapi_init(info_addr);
+    kprintf("API: syscall table at 0x%x\n", (uint32_t)sysapi_get());
 
     /* --- командная оболочка prosh ----------------------------- */
     commands_init();

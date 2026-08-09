@@ -17,10 +17,38 @@ target = "i386-none-elf"
 freestanding = true
 filename = "neopros"
 roots = ["src"]
-cflags = ["--target=i386-none-elf", "-ffreestanding", "-fno-builtin", "-fno-stack-protector", "-fno-pic", "-fno-pie", "-mno-sse", "-mno-mmx", "-mno-80387", "-Wall", "-Wextra"]
+cflags = ["--target=i386-none-elf", "-ffreestanding", "-fno-builtin", "-fno-stack-protector", "-fno-pic", "-fno-pie", "-mno-sse", "-mno-mmx", "-mno-80387", "-Isrc", "-Wall", "-Wextra"]
 ldflags = ["-T", "src/linker.ld", "-Wl,--build-id=none"]
 
 [run]
-cmd = "qemu-system-i386 -kernel target/i386-none-elf/{profile}/neopros.bin -serial stdio"
+# Образ FAT12 (neopros.fs) собирается [archive] после dcr build;
+# программы .BIN предварительно собирает scripts/build_fs.sh.
+cmd = "qemu-system-i386 -kernel target/i386-none-elf/{profile}/neopros.bin -initrd target/i386-none-elf/{profile}/neopros.fs -serial stdio"
+
+[archive]
+output = "target/i386-none-elf/{profile}/neopros.fs"
+format = "fat12"
+size = "1440K"
+label = "NEOPROS"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/neopros.bin"
+to = "NEOPROS.BIN"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/hello.bin"
+to = "HELLO.BIN"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/test.bin"
+to = "TEST.BIN"
+
+[[archive.layout]]
+from = "programs/readme.txt"
+to = "README.TXT"
+
+[[archive.layout]]
+from = "target/i386-none-elf/{profile}/hello.bin"
+to = "PROGS/HELLO.BIN"
 
 [dependencies]

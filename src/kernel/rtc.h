@@ -1,7 +1,7 @@
 #ifndef NEOPROS_RTC_H
 #define NEOPROS_RTC_H
 
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 
 /* Дата и время из RTC (CMOS) */
 struct rtc_time {

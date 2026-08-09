@@ -1,7 +1,7 @@
 #ifndef NEOPROS_IDT_H
 #define NEOPROS_IDT_H
 
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 
 /* Количество векторов IDT (i386) */
 #define IDT_ENTRIES 256

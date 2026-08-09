@@ -1,5 +1,5 @@
-#include "rtc.h"
-#include "io.h"
+#include "kernel/rtc.h"
+#include "kernel/io.h"
 
 /* Регистры RTC в CMOS (0x70 — индекс, 0x71 — данные) */
 #define RTC_SECONDS  0x00

@@ -1,5 +1,5 @@
-#include "serial.h"
-#include "io.h"
+#include "kernel/serial.h"
+#include "kernel/io.h"
 
 /* Регистры COM1 (порт базы 0x3F8) */
 #define COM1_THR 0x3F8   /* передающий регистр (Transmit Holding) */

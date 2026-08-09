@@ -1,5 +1,5 @@
 #include "idt.h"
-#include "io.h"
+#include "kernel/io.h"
 
 /* Адреса stub'ов сгенерированы в src/boot/isr_stubs.S */
 extern uint32_t isr_stub_table[IDT_ENTRIES];

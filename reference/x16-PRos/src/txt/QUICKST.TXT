@@ -1,0 +1,54 @@
+===========================================================================
+                          QUICK START GUIDE
+===========================================================================
+
+Welcome! This guide will help you get started with x16-PRos.
+
+LOOKING AROUND
+-------------------------------------------
+Once you are in the terminal, try these commands:
+
+  help    Show a list of all commands
+  dir     See what files are in the current directory
+  cd ..   Go to the parent directory
+  cd BIN  Go into the BIN directory
+  cls     Clear the screen
+
+RUNNING PROGRAMS
+-------------------------------------------
+To run a program, just type its name. You can skip the
+extension if you want:
+
+  CALC        runs the calculator
+  CALC.BIN    same thing
+
+Programs in the BIN and PLE directories can be started from anywhere.
+Programs in other directories only work when you are in that
+directory.
+
+VIEWING IMAGES
+-------------------------------------------
+To view a BMP image:
+
+  view BMP/LOGO.BMP
+
+You can add -upscale to zoom 2x, or -stretch to fill the
+whole screen.
+
+WHAT TO TRY NEXT
+-------------------------------------------
+  PAINT       Draw pictures and save them as BMP
+  WRITER      Edit and create text files
+  SNAKE       A classic snake game
+  TETRIS      The original block puzzle
+  MINE        Minesweeper with mouse support
+  FETCH       See your system info
+  PIANO       Play music with your keyboard
+  SETTINGS    Change timezone and other options
+
+For the full list of programs, see PROGRAMS.TXT.
+For all terminal commands, see COMMANDS.TXT.
+
+Have fun!
+
+===========================================================================

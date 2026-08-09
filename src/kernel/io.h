@@ -1,7 +1,7 @@
 #ifndef NEOPROS_IO_H
 #define NEOPROS_IO_H
 
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 
 /* Отправка байта в порт ввода-вывода (i386: инструкция OUT). */
 static inline void outb(uint16_t port, uint8_t value)

@@ -1,7 +1,7 @@
 #ifndef NEOPROS_PIT_H
 #define NEOPROS_PIT_H
 
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 
 /* Частота системного таймера, Гц */
 #define PIT_HZ 100

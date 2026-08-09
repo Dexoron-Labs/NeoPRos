@@ -1,0 +1,58 @@
+#ifndef NEOPROS_FS_H
+#define NEOPROS_FS_H
+
+#include "kernel/multiboot.h"
+
+/*
+ * Файловая система NeoPRos — FAT12 (1.44 МБ), только чтение.
+ * Образ диска загружается загрузчиком как multiboot-модуль
+ * (QEMU: -initrd), т.е. RAM-диск: сектор LBA лежит по адресу
+ * base + LBA * 512.
+ *
+ * Имена в формате 8.3, регистронезависимы. Пути относительны
+ * текущему каталогу и могут содержать '/' (например "SUB/NAME.BIN").
+ * Специальное имя ".." возвращает в родительский каталог.
+ */
+
+/* Глубина стека текущего каталога. */
+#define FS_MAX_DEPTH 8
+
+/* Инициализация: ищет первый multiboot-модуль (RAM-диск).
+ * Без модуля ФС остаётся недоступной. */
+void fs_init(const struct multiboot_info *mbi);
+
+/* Доступна ли ФС (образ найден). */
+int fs_available(void);
+
+/* Базовый адрес образа в памяти (0, если диска нет). */
+uint32_t fs_image_base(void);
+
+/* Имя и размер образа (для отладки; размер 0, если нет диска). */
+const char *fs_image_name(void);
+uint32_t fs_image_size(void);
+
+/* Загрузить файл целиком в buf (не более size байт).
+ * Возвращает число прочитанных байт или 0 при ошибке. */
+uint32_t fs_load(const char *name, void *buf, uint32_t size);
+
+/*
+ * Список каталога dir (NULL/"" = текущий) в буфер:
+ * строки "NAME.EXT SIZE\n"; каталоги помечаются '/' после имени
+ * ("SUBDIR/ SIZE\n"). Список завершается нулём. Возвращает число
+ * записей или 0xFFFFFFFF при ошибке (нет каталога, мал буфер).
+ */
+uint32_t fs_list(const char *dir, char *buf, uint32_t size);
+
+/* Существует ли файл/каталог (1 или 0). */
+int fs_exists(const char *name);
+
+/* Размер файла в байтах (0 при ошибке/каталоге). */
+uint32_t fs_size(const char *name);
+
+/* Смена текущего каталога (1 ок, 0 ошибка). */
+int fs_chdir(const char *dir);
+
+/* Текущий каталог: "/" для корня, иначе "A/B/C" (без ведущего '/'). */
+void fs_getcwd(char *buf, uint32_t size);
+
+#endif /* NEOPROS_FS_H */

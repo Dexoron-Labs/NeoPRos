@@ -1,7 +1,7 @@
 #ifndef NEOPROS_GDT_H
 #define NEOPROS_GDT_H
 
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 
 /*
  * Минимальная GDT ядра: нулевой дескриптор + два плоских

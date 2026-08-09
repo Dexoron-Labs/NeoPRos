@@ -1,6 +1,6 @@
-#include "kbd.h"
-#include "io.h"
-#include "string.h"
+#include "kernel/kbd.h"
+#include "kernel/io.h"
+#include "lib/string.h"
 
 /* --- Таблицы сканкодов (set 1) ------------------------------- */
 /* Обычные символы; 0 = нет символа (служебные клавиши) */

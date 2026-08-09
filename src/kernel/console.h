@@ -1,8 +1,8 @@
 #ifndef NEOPROS_CONSOLE_H
 #define NEOPROS_CONSOLE_H
 
-#include "multiboot.h"
-#include "vga.h"      /* VGA_COLOR_* — единая палитра */
+#include "kernel/multiboot.h"
+#include "kernel/vga.h"      /* VGA_COLOR_* — единая палитра */
 
 /*
  * Единая консоль ядра: один и тот же текст с одинаковыми цветами
@@ -20,6 +20,9 @@ void console_clear(void);
 /* Форматированный вывод в обе консоли.
  * Поддерживаются: %s %c %d %u %x %% — для остального вывод как есть. */
 void kprintf(const char *fmt, ...);
+
+/* Вариант с готовым va_list (используется системным API). */
+void vkprintf(const char *fmt, __builtin_va_list ap);
 
 /* Перемещение аппаратного курсора в колонку на текущей строке
  * (для readline; COM1 курсора не имеет). */

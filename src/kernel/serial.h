@@ -1,7 +1,7 @@
 #ifndef NEOPROS_SERIAL_H
 #define NEOPROS_SERIAL_H
 
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 
 /* Инициализация COM1 (38400 бод, 8N1). */
 void com1_init(void);

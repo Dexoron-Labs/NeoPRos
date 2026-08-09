@@ -1,5 +1,5 @@
-#include "vga.h"
-#include "io.h"
+#include "kernel/vga.h"
+#include "kernel/io.h"
 
 /* Аппаратные константы VGA text mode (80x25, 16 цветов) */
 #define VGA_MEMORY   ((volatile uint16_t *)0xB8000)

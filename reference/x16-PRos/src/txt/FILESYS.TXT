@@ -1,0 +1,67 @@
+===========================================================================
+                        FILE SYSTEM INFORMATION
+===========================================================================
+
+x16-PRos uses the FAT12 file system, the same format used
+by MS-DOS and early Windows versions so you can CRUD this disks.
+
+FILE NAMES
+-------------------------------------------
+Files follow the 8.3 naming rule:
+  - Up to 8 characters for the name
+  - Up to 3 characters for the extension
+  - Example: MYFILE.TXT
+
+Names are always stored in UPPERCASE.
+Spaces and these characters are not allowed:
+  \ / : * ? " < > |
+
+SUPPORTED FILE TYPES
+-------------------------------------------
+  .BIN   Programs made for x16-PRos.
+         Run by typing the name in the terminal.
+
+  .PLE   PRos Large Executable. Native x16-PRos format
+         for bigger programs. Can run in the background
+         with the BG command.
+
+  .COM   Simple MS-DOS programs.
+
+  .EXE   MS-DOS MZ executables.
+
+  .TXT   Plain text files.
+         Read with CAT, edit with WRITER or ED.
+
+  .BMP   Bitmap images, up to 320x240, 256 colors.
+         View with the VIEW command.
+
+  .IMF   Music files for AdLib/OPL2 sound cards.
+         Play with IMFPLAY.
+
+  .WAV   Sound files.
+         Play with WAVPLAY.
+
+  .CFG   Configuration files (in the CONF folder).
+         See CONFIGS.TXT for details.
+
+  .FNT   Font files (in the FONTS folder).
+         Change font with FONT.BIN.
+
+  .THM   Color theme files (in the THEMES folder).
+         Switch themes with THEME.BIN.
+
+FOLDER STRUCTURE
+-------------------------------------------
+  /         Root directory (up to 224 files)
+  BIN/      Programs and applications
+  COM/      MS-DOS .COM programs
+  EXE/      MS-DOS .EXE programs
+  PLE/      PRos large executables
+  CONF/     Configuration files
+  DOCS/     Documentation (you are reading it now)
+  BMP/      Images
+  MUSIC/    Music and sound files
+  FONTS/    Terminal fonts
+  THEMES/   Terminal color themes
+
+===========================================================================

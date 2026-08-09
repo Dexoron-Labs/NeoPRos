@@ -1,0 +1,105 @@
+===========================================================================
+                      TERMINAL COMMANDS REFERENCE
+===========================================================================
+
+GETTING SOME INFORMATION
+-------------------------------------------
+  help
+    Get list of the comands
+
+  info
+    Shows quick system info
+
+  ver
+    Prints the PRos terminal version.
+
+SCREEN
+-------------------------------------------
+  cls
+    Clear the screen
+
+  date
+    Shows today's date in DD/MM/YY format.
+
+  time
+    Shows the current time in HH:MM:SS format.
+
+FILES
+-------------------------------------------
+  dir
+    List all files in the current directory with their
+    sizes and a total file count.
+
+  cat <file>
+    Print the contents of a text file to the screen.
+
+  size <file>
+    Show the file size in bytes.
+
+  del <file>
+    Delete a file.
+
+  copy <source> <destination>
+    Copy a file. Works only in current directory.
+  
+  ren <oldname> <newname>
+    Rename a file.
+
+  touch <file>
+    Create a new empty file.
+    
+  write <file> <text>
+    Write text into a file (overwrites old content).
+
+DIRECTORIES
+-------------------------------------------
+  cd <dirname>
+    Change current directory.
+
+  cd ..
+    Go up one level to the parent directory.
+
+  cd /
+    Go back to the root directory.
+
+  mkdir <dirname>
+    Create a new diretory.
+
+  deldir <name>
+    Delete a directory. The directory must be empty.
+
+IMAGES
+-------------------------------------------
+  view <file> [options]
+    Display a BMP image on screen.
+    Supports up to 320x240 resolution, 256 colors.
+
+    Options:
+      -upscale   Scale the image 2x
+      -stretch   Stretch to fill the screen
+
+MULTITASKING
+-------------------------------------------
+  bg <file>
+    Runs a .PLE program in the background.
+    The terminal stays available while the program
+    works. See PROGRAMS.TXT for PLE programs.
+
+SYSTEM
+-------------------------------------------
+  reboot
+    Restart the computer immediately.
+
+  shut
+    Shut down the computer using APM.
+    Only works on APM-compatible hardware.
+
+  exit
+    Exit to the bootloader.
+
+-------------------------------------------
+
+TIP: To run a program, just type its name:
+     CALC  or  CALC.BIN
+
+===========================================================================

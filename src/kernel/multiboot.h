@@ -39,4 +39,13 @@ struct multiboot_info {
     uint32_t vbe_interface_len;
 };
 
+/* Запись multiboot-модуля: RAM-диск (образ ФС) передаётся
+ * загрузчиком как модуль (QEMU -initrd → первый модуль). */
+struct multiboot_module {
+    uint32_t start;
+    uint32_t end;
+    uint32_t string;
+    uint32_t reserved;
+};
+
 #endif /* NEOPROS_MULTIBOOT_H */

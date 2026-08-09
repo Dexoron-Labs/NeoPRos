@@ -1,7 +1,7 @@
 #ifndef NEOPROS_VGA_H
 #define NEOPROS_VGA_H
 
-#include "multiboot.h"
+#include "kernel/multiboot.h"
 
 /* Цвета VGA (верхняя половина байта атрибута — фон, нижняя — текст) */
 #define VGA_COLOR_BLACK   0x0

@@ -1,6 +1,6 @@
-#include "console.h"
-#include "vga.h"
-#include "serial.h"
+#include "kernel/console.h"
+#include "kernel/vga.h"
+#include "kernel/serial.h"
 
 #include <stdarg.h>
 
@@ -169,14 +169,18 @@ static void kvformat(char *buf, const char *fmt, va_list ap)
     *p = '\0';
 }
 
-void kprintf(const char *fmt, ...)
+void vkprintf(const char *fmt, __builtin_va_list ap)
 {
     char buf[256];
+    kvformat(buf, fmt, ap);
+    console_puts(buf);
+}
+
+void kprintf(const char *fmt, ...)
+{
     va_list ap;
 
     va_start(ap, fmt);
-    kvformat(buf, fmt, ap);
+    vkprintf(fmt, ap);
     va_end(ap);
-
-    console_puts(buf);
 }

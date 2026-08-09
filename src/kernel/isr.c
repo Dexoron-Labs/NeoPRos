@@ -1,6 +1,6 @@
 #include "isr.h"
-#include "console.h"
-#include "io.h"
+#include "kernel/console.h"
+#include "kernel/io.h"
 
 /* Имена исключений i386 (векторы 0..31) */
 static const char *const exception_names[] = {
